@@ -1,0 +1,40 @@
+# depslib dependency file v1.0
+1463122491 source:d:\coding\company_test3\main.cpp
+	<stdio.h>
+	<stdlib.h>
+	<mysql.h>
+	<string>
+	<iostream>
+
+1459995276 c:\program files\mysql\mysql server 5.7\mysql-connector-c-noinstall-6.0.2-win32\include\mysql.h
+	<standards.h>
+	<sys/types.h>
+	<winsock2.h>
+	"mysql_version.h"
+	"mysql_com.h"
+	"mysql_time.h"
+	"my_list.h"
+	"typelib.h"
+	"my_alloc.h"
+
+1459995276 c:\program files\mysql\mysql server 5.7\mysql-connector-c-noinstall-6.0.2-win32\include\mysql_version.h
+	<custom_conf.h>
+
+1459995276 c:\program files\mysql\mysql server 5.7\mysql-connector-c-noinstall-6.0.2-win32\include\mysql_com.h
+
+1459995276 c:\program files\mysql\mysql server 5.7\mysql-connector-c-noinstall-6.0.2-win32\include\mysql_time.h
+
+1459995276 c:\program files\mysql\mysql server 5.7\mysql-connector-c-noinstall-6.0.2-win32\include\my_list.h
+
+1459995276 c:\program files\mysql\mysql server 5.7\mysql-connector-c-noinstall-6.0.2-win32\include\typelib.h
+	"my_alloc.h"
+
+1459995276 c:\program files\mysql\mysql server 5.7\mysql-connector-c-noinstall-6.0.2-win32\include\my_alloc.h
+
+1462879778 d:\coding\company_test3\regist.cpp
+
+1462879533 d:\coding\company_test3\regist.h
+
+1462879790 source:d:\coding\company_test3\regist.cpp
+	<stdio.h>
+

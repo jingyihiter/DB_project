@@ -1,0 +1,76 @@
+# depslib dependency file v1.0
+1461207386 source:d:\coding\mysql-company\main.c
+	<stdio.h>
+	<mysql.h>
+	<string.h>
+
+1454344318 c:\program files\mysql\mysql server 5.7\include\mysql.h
+	<sys/types.h>
+	<windows.h>
+	<winsock2.h>
+	"mysql_version.h"
+	"mysql_com.h"
+	"mysql_time.h"
+	"my_list.h"
+	"mysql/client_plugin.h"
+	"typelib.h"
+	"my_alloc.h"
+
+1454350178 c:\program files\mysql\mysql server 5.7\include\mysql_version.h
+
+1454344318 c:\program files\mysql\mysql server 5.7\include\mysql_com.h
+	"binary_log_types.h"
+	"my_command.h"
+
+1454344318 c:\program files\mysql\mysql server 5.7\include\binary_log_types.h
+
+1454344318 c:\program files\mysql\mysql server 5.7\include\my_command.h
+
+1454344318 c:\program files\mysql\mysql server 5.7\include\mysql_time.h
+
+1454344318 c:\program files\mysql\mysql server 5.7\include\my_list.h
+
+1454344318 c:\program files\mysql\mysql server 5.7\include\mysql\client_plugin.h
+	<stdarg.h>
+	<stdlib.h>
+	<mysql/plugin_auth_common.h>
+
+1454344318 c:\program files\mysql\mysql server 5.7\include\mysql\plugin_auth_common.h
+	<windows.h>
+
+1454344318 c:\program files\mysql\mysql server 5.7\include\typelib.h
+	"my_alloc.h"
+
+1454344318 c:\program files\mysql\mysql server 5.7\include\my_alloc.h
+	<mysql/psi/psi_memory.h>
+
+1454344318 c:\program files\mysql\mysql server 5.7\include\mysql\psi\psi_memory.h
+	"psi_base.h"
+
+1454344318 c:\program files\mysql\mysql server 5.7\include\mysql\psi\psi_base.h
+
+1459995276 c:\program files\mysql\mysql server 5.7\mysql-connector-c-noinstall-6.0.2-win32\include\mysql.h
+	<standards.h>
+	<sys/types.h>
+	<winsock2.h>
+	"mysql_version.h"
+	"mysql_com.h"
+	"mysql_time.h"
+	"my_list.h"
+	"typelib.h"
+	"my_alloc.h"
+
+1459995276 c:\program files\mysql\mysql server 5.7\mysql-connector-c-noinstall-6.0.2-win32\include\mysql_version.h
+	<custom_conf.h>
+
+1459995276 c:\program files\mysql\mysql server 5.7\mysql-connector-c-noinstall-6.0.2-win32\include\mysql_com.h
+
+1459995276 c:\program files\mysql\mysql server 5.7\mysql-connector-c-noinstall-6.0.2-win32\include\mysql_time.h
+
+1459995276 c:\program files\mysql\mysql server 5.7\mysql-connector-c-noinstall-6.0.2-win32\include\my_list.h
+
+1459995276 c:\program files\mysql\mysql server 5.7\mysql-connector-c-noinstall-6.0.2-win32\include\typelib.h
+	"my_alloc.h"
+
+1459995276 c:\program files\mysql\mysql server 5.7\mysql-connector-c-noinstall-6.0.2-win32\include\my_alloc.h
+
