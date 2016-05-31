@@ -7,6 +7,7 @@
 int Random(int low,int high);                            //生成随机数
 void storeData(unsigned int * blk,Buffer *buf);          //存储数据
 void loadData(unsigned int * blk,Buffer *buf);            //读取数据
+
 void SelectRelationship(unsigned int * blk,Buffer *buf);   //选择关系
 
 void MappingRelationship(unsigned int * blk,Buffer *buf);  //投影关系
@@ -107,7 +108,7 @@ void storeData(unsigned int * blk,Buffer *buf) //存储数据
             *(blk+2*Rj) = a;
             *(blk+2*Rj+1) = b;
         }
-        *(blk+2*Rj+1)=Ri+1;
+        *(blk+2*Rj+1)=Ri+1; //存下一块的地址
         if(Ri == 15)
         {
             *(blk+2*Rj+1)=0;
@@ -130,7 +131,7 @@ void storeData(unsigned int * blk,Buffer *buf) //存储数据
             *(blk+2*Sj)=c;
             *(blk+2*Sj+1)=d;
         }
-        *(blk+2*Sj+1) = Si+17;
+        *(blk+2*Sj+1) = Si+21; //存下一个的块号
         if(Si==31)
         {
             *(blk+2*Sj+1) = 0;
@@ -326,7 +327,7 @@ unsigned int Exsort(unsigned int saddr,int n,Buffer *buf)
 void MappingRelationship(unsigned int * blk,Buffer *buf)  //对R.A投影
 {
  printf("\t 投影关系   \n");
- int ri,rj,a,basic=200,num=0,counta=0;
+ int ri,rj,a,basic=200,num=0,counta=0,count=0;
  unsigned int *disk_blk,tmp;
  printf("\t排序前 R.A :\n");
  for(ri=0;ri<16;ri++)
@@ -360,10 +361,10 @@ void MappingRelationship(unsigned int * blk,Buffer *buf)  //对R.A投影
     }
     printf("\n\t去重后 R.A :\n");
     blk=(int*)readBlockFromDisk(basic,buf);
-    disk_blk = getNewBlockInBuffer(buf); //结果存在 350-390内 R.A
+    disk_blk = getNewBlockInBuffer(buf); //结果存在 350-内 R.A
     tmp=*blk;
-    *disk_blk = tmp;
-    writeBlockToDisk(disk_blk,basic+150+counta,buf);
+    *(disk_blk+count) = tmp;
+    //writeBlockToDisk(disk_blk,basic+150+counta,buf);
     printf("%d ",tmp);
     for(ri=1; ri<num; ri++)
     {
@@ -378,21 +379,93 @@ void MappingRelationship(unsigned int * blk,Buffer *buf)  //对R.A投影
                 goto END;
             }
         }
-        disk_blk = getNewBlockInBuffer(buf); //结果存在 350-390内
-        counta++;
+        //disk_blk = getNewBlockInBuffer(buf); //结果存在 350-390内
         tmp=*blk;
-        *disk_blk = tmp;
-        writeBlockToDisk(disk_blk,basic+150+counta,buf);
-        freeBlockInBuffer(disk_blk,buf);
+        count++;
+        *(disk_blk+count) = tmp;
+        if(ri==num-1)
+            {
+                 writeBlockToDisk(disk_blk,basic+150+counta,buf);
+                 freeBlockInBuffer(disk_blk,buf);
+            }
+        else
+        {
+            if(count == 15)
+            {
+                 *(disk_blk+count+1) = basic+150+counta+1; //存下一个块号
+                 writeBlockToDisk(disk_blk,basic+150+counta,buf);
+                 freeBlockInBuffer(disk_blk,buf);
+                 count = -1;
+                 counta++;
+            }
+        }
         printf("%d ",tmp);
         freeBlockInBuffer(blk,buf);
     }
 END:    printf("\n\n");
 }
+/** \brief Nst_Loop_Join
+ *
+ * \param unsigned int * blk
+ * \param Buffer *buf
+ * \return void
+ *
+ */
 
 void Nst_Loop_Join(unsigned int * blk,Buffer *buf)
 {
+ int ri,rj,si,sj,num=1000,blk_count=0;
+ int a,b,c,d;
+ unsigned int *desk_blk,*wr_blk;
+ for(ri=0;ri<16;ri++)
+ {
+     blk = readBlockFromDisk(ri,buf);  //R 每个block
+     for(rj=0;rj<7;rj++)
+     {
+         a = *(blk+2*rj);
+         for(si=0;si<32;si++)
+         {
+             desk_blk = readBlockFromDisk(si+20,buf);//s 每个block
+             for(sj=0;sj<7;sj++)
+             {
+                 c = *(desk_blk+2*sj);
+                 if(a == c)
+                 {
+                     b = *(blk+2*rj+1);
+                     d = *(desk_blk+2*sj+1);
+                     printf("(%d,%d) (%d,%d) \n",a,b,c,d);
+                     if(blk_count==0)
+                      {
+                        wr_blk = getNewBlockInBuffer(buf);
+                      }
+                     *(wr_blk+blk_count)=a;
+                     *(wr_blk+blk_count+1)=b;
+                     *(wr_blk+blk_count+2)=d;
+                     blk_count+=3;
+                     if(ri==15&&si==31)   //如果是最后一个块（不满），也进行存储
+                     {
+                          writeBlockToDisk(wr_blk,num,buf);
+                           freeBlockInBuffer(wr_blk,buf);
+                     }
+                     else
+                     {
+                            if(blk_count == 15)   //如果块满，则存
+                         {
+                             *(wr_blk+blk_count) = num+1;  //最后四个字节 存储下一块的块号
+                             writeBlockToDisk(wr_blk,num,buf);
+                             num++;
+                             freeBlockInBuffer(wr_blk,buf);
+                             blk_count=0;
+                         }
+                     }
+                  }
 
+             }
+             freeBlockInBuffer(desk_blk,buf);
+         }
+     }
+     freeBlockInBuffer(blk,buf);
+ }
 }
 
 void Sort_Merge_Join(unsigned int * blk,Buffer *buf)
@@ -423,6 +496,7 @@ void ConnectRelationship(unsigned int * blk,Buffer *buf)
         {
         case 1: //Nst_Loop_Join算法
             {
+                Nst_Loop_Join(blk,buf);
                 continue;
             }
         case 2: //Sort_Merge_Join算法
