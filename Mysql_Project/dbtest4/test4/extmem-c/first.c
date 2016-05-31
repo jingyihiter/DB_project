@@ -1,0 +1,482 @@
+
+#include <stdlib.h>
+#include <stdio.h>
+#include "extmem.h"
+#include<time.h>
+#define MAX 1000
+int Random(int low,int high);                            //生成随机数
+void storeData(unsigned int * blk,Buffer *buf);          //存储数据
+void loadData(unsigned int * blk,Buffer *buf);            //读取数据
+void SelectRelationship(unsigned int * blk,Buffer *buf);   //选择关系
+
+void MappingRelationship(unsigned int * blk,Buffer *buf);  //投影关系
+unsigned int Merge(unsigned int left,int ln,unsigned int right,int rn,Buffer *buf);
+unsigned int Exsort(unsigned int saddr,int n,Buffer *buf);
+
+void ConnectRelationship(unsigned int * blk,Buffer *buf);   //连接关系
+void Nst_Loop_Join(unsigned int * blk,Buffer *buf);
+void Sort_Merge_Join(unsigned int * blk,Buffer *buf);
+void Hash_Join(unsigned int *blk, Buffer *buf);
+
+void CollectionRelationship(unsigned int * blk,Buffer *buf);  //集合操作
+
+
+int main()
+{
+    srand((unsigned)time(NULL));
+    Buffer buf; /* A buffer */
+    //unsigned char *blk; /* A pointer to a block */
+    unsigned int *blk;
+    int i = 0;
+    int sel;
+    /* Initialize the buffer */
+    if (!initBuffer(520, 64, &buf))
+    {
+        perror("Buffer Initialization Failed!\n");
+        return -1;
+    }
+    storeData(blk, &buf);
+    //loadData(blk,&buf);
+    while(1)
+    {
+        printf("\t***** 1 选择\t2 投影\t3 连接\t 4 集合操作 *****\n\n ");
+        scanf("%d",&sel);
+        switch (sel)
+        {
+        case 1:  //选择关系
+            {
+                SelectRelationship(blk,&buf);
+                continue;
+            }
+        case 2: //投影关系
+            {
+                MappingRelationship(blk,&buf);
+                continue;
+            }
+        case 3:  //连接关系
+            {
+                ConnectRelationship(blk,&buf);
+               continue;
+            }
+        case 4: //集合操作
+            {
+                CollectionRelationship(blk,&buf);
+               continue;
+            }
+        default:
+            {
+                printf("\t选择序号错误，重新输入!\n\n");
+                continue;
+            }
+        }
+    }
+    printf("\n");
+    printf("# of IO's is %d\n", buf.numIO); /* Check the number of IO's */
+    system("pause");
+    return 0;
+}
+/** \brief  生成随机数
+ *  Random
+ * \param int low
+ * \param  int high
+ * \return  int
+ *
+ */
+int Random(int low,int high)  //随机数生成
+{
+    return rand()%(high-low)+low+1;
+}
+/** \brief  存储数据
+ *     storeData
+ * \param unsigned int *blk
+ * \param  Buffer * buf
+ * \return void
+ *
+ */
+void storeData(unsigned int * blk,Buffer *buf) //存储数据
+{
+    unsigned int a,b,c,d;
+    int Ri,Rj,Si,Sj;
+    for(Ri=0;Ri<16;Ri++)
+    {
+        blk = getNewBlockInBuffer(buf);
+        for(Rj=0;Rj<7;Rj++)
+        {
+            a = Random(1,40);
+            b = Random(1,1000);
+            *(blk+2*Rj) = a;
+            *(blk+2*Rj+1) = b;
+        }
+        *(blk+2*Rj+1)=Ri+1;
+        if(Ri == 15)
+        {
+            *(blk+2*Rj+1)=0;
+        }
+        //printf("R %d,%d\n",*blk,*(blk+1));
+        if (writeBlockToDisk(blk, Ri, buf) != 0)
+        {
+            perror("Writing Block Failed!\n");
+            return -1;
+        }
+        freeBlockInBuffer(blk,buf);
+    }
+    for(Si=0;Si<32;Si++)
+    {
+        blk = getNewBlockInBuffer(buf);
+        for(Sj=0;Sj<7;Sj++)
+        {
+            c= Random(20,60);
+            d = Random(1,1000);
+            *(blk+2*Sj)=c;
+            *(blk+2*Sj+1)=d;
+        }
+        *(blk+2*Sj+1) = Si+17;
+        if(Si==31)
+        {
+            *(blk+2*Sj+1) = 0;
+        }
+        //printf("S %d,%d\n",*blk,*(blk+1));
+        if (writeBlockToDisk(blk, Si+20, buf) != 0)
+        {
+            perror("Writing Block Failed!\n");
+            return -1;
+        }
+        freeBlockInBuffer(blk,buf);
+    }
+}
+/** \brief 读取数据
+ *   loadData
+ * \param  unsigned int * blk
+ * \param  Buffer * buf
+ * \return void
+ *
+ */
+void loadData(unsigned int * blk,Buffer *buf)
+{
+    unsigned int a,b,c,d;
+    int ri,rj,si,sj;
+    for(ri=0;ri<16;ri++)
+    {
+        if((blk = readBlockFromDisk(ri,buf))==NULL)
+        {
+            perror("Reading Block Failed!\n");
+            return;
+        }
+        for(rj=0;rj<7;rj++)
+        {
+            a = *(blk+2*rj);
+            b = *(blk+2*rj+1);
+            printf("R = %d,%d\n",a,b);
+        }
+        freeBlockInBuffer(blk,buf);
+    }
+    for(si=0;si<32;si++)
+    {
+      if((blk = readBlockFromDisk(si+20,buf))==NULL)
+        {
+            perror("Reading Block Failed!\n");
+            return;
+        }
+     for(sj=0;sj<7;sj++)
+     {
+         c = *(blk+2*sj);
+         d = *(blk+2*sj+1);
+         printf("S = %d,%d\n",c,d);
+     }
+     freeBlockInBuffer(blk,buf);
+    }
+}
+/** \brief 选择关系
+ * 线性搜索 二元搜索 索引算法
+ * 结果存放磁盘
+ * \param unsigned int * blk
+ * \param Buffer *buf
+ * \return void
+ *
+ */
+void SelectRelationship(unsigned int * blk,Buffer *buf)
+{
+ printf("\t1 线性搜索   2 二元搜素   3 索引算法   -1 结束\n");
+ int sel=0;
+ int i,j,a,b,c,d;
+ int line_count=60;  //60 开始存储
+ unsigned int *disk_blk;
+ while(sel!=-1)
+ {
+     scanf("%d",&sel);
+     switch (sel)
+     {
+     case 1: //线性搜索
+         {
+             for(i=0;i<16;i++)  //查R
+             {
+                 blk = readBlockFromDisk(i,buf);
+                 for(j=0;j<7;j++)
+                 {
+                     if(*(blk+2*j)==40)
+                     {
+                         a = 40;
+                         b = *(blk+2*j+1);
+                         printf("a = %d, b = %d\n",a,b);
+                         disk_blk = getNewBlockInBuffer(buf);
+                         *disk_blk = a;
+                         *(disk_blk+1)=b;
+                         writeBlockToDisk(disk_blk,line_count,buf);
+                         line_count++;
+                     }
+                 }
+                 freeBlockInBuffer(blk,buf);
+             }
+             line_count+=10;   //中间间隔10个blk，区分 R.A=40 和S.C=60的元组
+             for(i=0;i<32;i++)
+             {
+                 blk = readBlockFromDisk(i+20,buf);
+                 for(j=0;j<7;j++)
+                 {
+                     if(*(blk+2*j)==60)
+                     {
+                         c = 60;
+                         d = *(blk+2*j+1);
+                         printf("c = %d, d = %d\n",c,d);
+                          disk_blk = getNewBlockInBuffer(buf);
+                         *disk_blk = c;
+                         *(disk_blk+1)=d;
+                         writeBlockToDisk(disk_blk,line_count,buf);
+                         line_count++;
+                     }
+                 }
+                 freeBlockInBuffer(blk,buf);
+             }
+             printf("\n");
+             break;
+         }
+     case 2: //二元搜索
+         {
+             break;
+         }
+     case 3: //索引算法
+         {
+             break;
+         }
+     default:
+         {
+              break;
+         }
+     }
+ }
+
+}
+
+unsigned int Merge(unsigned int left,int ln,unsigned int right,int rn,Buffer *buf)
+{
+    int l=0,r=0;//计数
+    int offset=0,i;
+    unsigned int tmpaddr=left+500;//结果存入的地址
+    unsigned int *blk1,*blk2;
+    while(l<ln||r<rn)
+    {
+        if(l==ln)//左边结束
+            *blk1=MAX;
+        else
+            blk1=(int *)readBlockFromDisk(left+l,buf);
+        if(r==rn)
+             *blk2=MAX;//右边结束
+        else
+            blk2=(int *)readBlockFromDisk(right+r,buf);
+        if(*blk1<*blk2)
+        {
+            writeBlockToDisk(blk1,tmpaddr+offset,buf);
+            l++;//左边指针向后
+            offset++;//写入的地址向后移动
+        }
+        else
+        {
+            writeBlockToDisk(blk2,tmpaddr+offset,buf);
+            r++;
+            offset++;
+        }
+        freeBlockInBuffer(blk1,buf);
+        freeBlockInBuffer(blk2,buf);
+    }
+    for(i=0;i<offset;i++)//写回原来的位置
+    {
+        blk1=(int*)readBlockFromDisk(tmpaddr+i,buf);
+        writeBlockToDisk(blk1,left+i,buf);
+        freeBlockInBuffer(blk1,buf);
+    }
+    return left;
+}
+
+unsigned int Exsort(unsigned int saddr,int n,Buffer *buf)
+{
+    unsigned int left,right;
+    if(n==1)   ///complete sorting
+        return saddr;
+    left=Exsort(saddr,n/2,buf);
+    right=Exsort(saddr+n/2,n-n/2,buf);
+    return Merge(left,n/2,right,n-n/2,buf);
+}
+/** \brief 投影关系
+ * 实现关系投影，并存储在磁盘上
+ * \param unsigned int * blk
+ * \param Buffer *buf
+ * \return void
+ *
+ */
+void MappingRelationship(unsigned int * blk,Buffer *buf)  //对R.A投影
+{
+ printf("\t 投影关系   \n");
+ int ri,rj,a,basic=200,num=0,counta=0;
+ unsigned int *disk_blk,tmp;
+ printf("\t排序前 R.A :\n");
+ for(ri=0;ri<16;ri++)
+    {
+        if((blk = readBlockFromDisk(ri,buf))==NULL)
+        {
+            perror("Reading Block Failed!\n");
+            return;
+        }
+        for(rj=0;rj<7;rj++)
+        {
+            a = *(blk+2*rj);
+            printf("%d ",a);
+            disk_blk = getNewBlockInBuffer(buf);
+            *disk_blk = a;
+            writeBlockToDisk(disk_blk,basic+num,buf); //200-311.blk
+            num++;
+            freeBlockInBuffer(disk_blk,buf);
+        }
+        freeBlockInBuffer(blk,buf);
+    }
+    printf("\n");
+    printf("\t排序后 R.A:\n");
+    basic = Exsort(basic,num,buf);
+    //printf("%d\n",basic);
+    for(ri=0;ri<num;ri++)
+    {
+        blk = readBlockFromDisk(basic+ri,buf);
+        printf("%d ",*blk);
+        freeBlockInBuffer(blk,buf);
+    }
+    printf("\n\t去重后 R.A :\n");
+    blk=(int*)readBlockFromDisk(basic,buf);
+    disk_blk = getNewBlockInBuffer(buf); //结果存在 350-390内 R.A
+    tmp=*blk;
+    *disk_blk = tmp;
+    writeBlockToDisk(disk_blk,basic+150+counta,buf);
+    printf("%d ",tmp);
+    for(ri=1; ri<num; ri++)
+    {
+        while(*blk==tmp)
+        {
+            freeBlockInBuffer(blk,buf);
+            ri++;
+            if(ri<num)
+                blk=(int*)readBlockFromDisk(basic+ri,buf);
+            else
+            {
+                goto END;
+            }
+        }
+        disk_blk = getNewBlockInBuffer(buf); //结果存在 350-390内
+        counta++;
+        tmp=*blk;
+        *disk_blk = tmp;
+        writeBlockToDisk(disk_blk,basic+150+counta,buf);
+        freeBlockInBuffer(disk_blk,buf);
+        printf("%d ",tmp);
+        freeBlockInBuffer(blk,buf);
+    }
+END:    printf("\n\n");
+}
+
+void Nst_Loop_Join(unsigned int * blk,Buffer *buf)
+{
+
+}
+
+void Sort_Merge_Join(unsigned int * blk,Buffer *buf)
+{
+
+}
+
+void Hash_Join(unsigned int *blk, Buffer *buf)
+{
+
+}
+/** \brief 连接关系
+ * Nst_Loop_Join算法 Sort_Merge_Join算法 Hash_Join算法
+ *结果存放磁盘
+ * \param unsigned int * blk
+ * \param Buffer *buf
+ * \return void
+ *
+ */
+void ConnectRelationship(unsigned int * blk,Buffer *buf)
+{
+    printf("\t1 Nst_Loop_Join \t2 Sort_Merge_Join \t3 Hash_Join \t其他结束\n");
+    int sel=0;
+    while(sel!=-1)
+    {
+        scanf("%d",&sel);
+        switch (sel)
+        {
+        case 1: //Nst_Loop_Join算法
+            {
+                continue;
+            }
+        case 2: //Sort_Merge_Join算法
+            {
+                continue;
+            }
+        case 3: //Hash_Join算法
+            {
+                continue;
+            }
+        default:
+            break;
+        }
+    }
+}
+
+/** \brief 集合操作
+ * 并、交、差
+ * \param unsigned int * blk
+ * \param Buffer *buf
+ * \return void
+ *
+ */
+void CollectionRelationship(unsigned int * blk,Buffer *buf)
+{
+    printf("\t 1 并 \t 2 交 \t 3 差 \t 其他结束\n");
+    int sel=0;
+    while(sel!=-1)
+    {
+        scanf("%d",&sel);
+        switch (sel)
+        {
+        case 1: //并
+            {
+                continue;
+            }
+        case 2: //交
+            {
+                continue;
+            }
+        case 3://差
+            {
+                continue;
+            }
+        default:
+            break;
+        }
+    }
+}
+
+
+
+
+
+
+
+
