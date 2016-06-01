@@ -4,7 +4,14 @@
 #include "extmem.h"
 #include<time.h>
 #define MAX 1000
+typedef struct TempArray
+ {
+     int c;
+     int d;
+ }TempArray;
+int temp_count=0,tempflag=0;
 int Random(int low,int high);                            //生成随机数
+void OutputData(int beginAddr,int n,unsigned int *blk,Buffer *buf,int flag);
 void storeData(unsigned int * blk,Buffer *buf);          //存储数据
 void loadData(unsigned int * blk,Buffer *buf);            //读取数据
 
@@ -12,7 +19,7 @@ void SelectRelationship(unsigned int * blk,Buffer *buf);   //选择关系
 
 void MappingRelationship(unsigned int * blk,Buffer *buf);  //投影关系
 unsigned int Merge(unsigned int left,int ln,unsigned int right,int rn,Buffer *buf);
-unsigned int Exsort(unsigned int saddr,int n,Buffer *buf);
+unsigned int Exsort(unsigned int saddr,int n,Buffer *buf);     //归并排序
 
 void ConnectRelationship(unsigned int * blk,Buffer *buf);   //连接关系
 void Nst_Loop_Join(unsigned int * blk,Buffer *buf);
@@ -20,7 +27,10 @@ void Sort_Merge_Join(unsigned int * blk,Buffer *buf);
 void Hash_Join(unsigned int *blk, Buffer *buf);
 
 void CollectionRelationship(unsigned int * blk,Buffer *buf);  //集合操作
-
+void CalculationIntersection(unsigned int *blk,Buffer *buf,TempArray *temp);    //计算R S的交集
+void UnionOfRelation(unsigned int * blk,Buffer *buf,TempArray *temp);       //并集
+void IntersectionOfRelation(unsigned int *blk,Buffer *buf,TempArray *temp); //交集
+void DifferenceOfRelation(unsigned int *blk,Buffer *buf,TempArray *temp);   //差集
 
 int main()
 {
@@ -36,7 +46,7 @@ int main()
         perror("Buffer Initialization Failed!\n");
         return -1;
     }
-    storeData(blk, &buf);
+    //storeData(blk, &buf);
     //loadData(blk,&buf);
     while(1)
     {
@@ -67,9 +77,10 @@ int main()
         default:
             {
                 printf("\t选择序号错误，重新输入!\n\n");
-                continue;
+                break;
             }
         }
+         //printf("# of IO's is %d\n", buf.numIO); /* Check the number of IO's */
     }
     printf("\n");
     printf("# of IO's is %d\n", buf.numIO); /* Check the number of IO's */
@@ -108,7 +119,7 @@ void storeData(unsigned int * blk,Buffer *buf) //存储数据
             *(blk+2*Rj) = a;
             *(blk+2*Rj+1) = b;
         }
-        *(blk+2*Rj+1)=Ri+1; //存下一块的地址
+        *(blk+2*Rj+1)=Ri+1;
         if(Ri == 15)
         {
             *(blk+2*Rj+1)=0;
@@ -143,6 +154,51 @@ void storeData(unsigned int * blk,Buffer *buf) //存储数据
             return -1;
         }
         freeBlockInBuffer(blk,buf);
+    }
+}
+/** \brief OutputData
+ * 打印存储的数据
+ * \param int beginAddr
+ * \param int n
+ * \param unsigned int *blk
+ * \param Buffer *buf
+ * \param int flag
+ * \return void
+ *
+ */
+
+void OutputData(int beginAddr,int n,unsigned int *blk,Buffer *buf,int flag)
+{
+    int i,j;
+    for(i=beginAddr;i<beginAddr+n;i++)
+    {
+        blk = readBlockFromDisk(i,buf);
+         if(flag==3)
+         {
+            for(j=0;j<15;j=j+3)
+                {
+                    printf("(%d, %d, %d) ",*(blk+j),*(blk+j+1),*(blk+j+2));
+                }
+                printf("\n");
+         }
+         if(flag==2)
+         {
+            for(j=0;j<7;j++)
+            {
+                printf("(%d ,%d) ",*(blk+2*j),*(blk+2*j+1));
+            }
+            printf("\n");
+         }
+        if(flag==1)
+            {
+                for(j=0;j<15;j++)
+                {
+                    printf("%d ",*(blk+j));
+                }
+                printf("\n");
+            }
+        freeBlockInBuffer(blk,buf);
+
     }
 }
 /** \brief 读取数据
@@ -433,7 +489,6 @@ void Nst_Loop_Join(unsigned int * blk,Buffer *buf)
                  {
                      b = *(blk+2*rj+1);
                      d = *(desk_blk+2*sj+1);
-                     printf("(%d,%d) (%d,%d) \n",a,b,c,d);
                      if(blk_count==0)
                       {
                         wr_blk = getNewBlockInBuffer(buf);
@@ -466,6 +521,7 @@ void Nst_Loop_Join(unsigned int * blk,Buffer *buf)
      }
      freeBlockInBuffer(blk,buf);
  }
+ OutputData(1000,num-1000,blk,buf,3);
 }
 
 void Sort_Merge_Join(unsigned int * blk,Buffer *buf)
@@ -512,7 +568,261 @@ void ConnectRelationship(unsigned int * blk,Buffer *buf)
         }
     }
 }
+/** \brief CalculationIntersection
+ * 集合的交集
+ * \param unsigned int *blk
+ * \param Buffer *buf
+ * \return TempArray *temp
+ *
+ */
 
+void CalculationIntersection(unsigned int *blk,Buffer *buf,TempArray *temp)
+{
+    int ri,rj,si,sj;
+    int a,b,c,d;
+    unsigned int *desk_blk;
+    for(ri=0;ri<16;ri++)
+    {
+        blk = readBlockFromDisk(ri,buf);
+        for(rj=0;rj<7;rj++)
+        {
+            a = *(blk+2*rj);
+            b = *(blk+2*rj+1);
+            for(si=0;si<32;si++)
+            {
+                desk_blk = readBlockFromDisk(si+20,buf);
+                for(sj=0;sj<7;sj++)
+                {
+                    c = *(desk_blk+2*sj);
+                    d = *(desk_blk+2*sj+1);
+                    if(a == c && b == d) //重复元组
+                     {
+                         temp[temp_count].c=c;
+                         temp[temp_count].d=d;
+                         temp_count++;
+                     }
+                }
+                 freeBlockInBuffer(desk_blk,buf);
+            }
+
+        }
+         freeBlockInBuffer(blk,buf);
+    }
+
+}
+/** \brief  UnionOfRelation
+ * R S的并，去重
+ * \param unsigned int * blk
+ * \param Buffer *buf
+ * \return void
+ *
+ */
+ void UnionOfRelation(unsigned int * blk,Buffer *buf,TempArray *temp)
+ {
+     int ri,rj,si,sj,num=1500,blk_count=0,i,snum=1516,s_count=0;
+     int a,b,c,d,flag=0,num_count=16;
+     unsigned int *desk_blk,*wrA_blk,*wr_blk,*s_blk;
+     for(si=0;si<32;si++)
+     {
+         desk_blk = readBlockFromDisk(si+20,buf);
+         wr_blk = getNewBlockInBuffer(buf);
+         for(sj=0;sj<7;sj++)
+         {
+             tempflag=0;
+             c = *(desk_blk+2*sj);
+             d = *(desk_blk+2*sj+1);
+             for(i=0;i<temp_count;i++)
+             {
+                 if(c == temp[i].c && d == temp[i].d)
+                 {
+                     tempflag=1;
+                     break;
+                 }
+             }
+             if(tempflag==0) //不在重复列表中,才存数据
+              {
+                 *(wr_blk+2*s_count)=c;
+                 *(wr_blk+2*s_count+1)=d;
+                 s_count++;
+              }
+            if(s_count == 7)
+             {
+                 *(wr_blk+2*s_count+1) = snum+1;
+                 writeBlockToDisk(wr_blk,snum,buf);
+                 freeBlockInBuffer(wr_blk,buf);
+                 s_count=0;
+                 snum++;
+
+             }
+         }
+          if(si==31 && sj == 6) //最后的，不满也要存储
+             {
+                writeBlockToDisk(wr_blk,snum,buf);
+                freeBlockInBuffer(wr_blk,buf);
+             }
+         freeBlockInBuffer(desk_blk,buf);
+     }
+     if(temp_count==0)
+     {
+         printf("集合并中没有重复\n");
+     }
+     printf("集合并操作之后（去重过）,重复项有%d\n",temp_count);
+     OutputData(0,16,blk,buf,2);
+     OutputData(1516,snum-1516,blk,buf,2);
+ }
+
+ /** \brief IntersectionOfRelation
+  * R S的交
+  * \param unsigned int *blk
+  * \param Buffer *buf
+  * \return void
+  *
+  */
+
+ void IntersectionOfRelation(unsigned int *blk,Buffer *buf,TempArray *temp)
+ {
+     int i,j,itemp=0,num=2000;
+    if(temp_count!=0)
+    {
+        printf("R 和 S的交：\n");
+        for(i=0;i<temp_count;i++)
+        {
+            blk = getNewBlockInBuffer(buf);
+            for(j=0;j<7&&itemp<temp_count;j++)
+            {
+                *(blk+2*j)=temp[itemp].c;
+                *(blk+2*j+1)=temp[itemp].d;
+                printf("(%d, %d) ",temp[itemp].c,temp[itemp].d);
+                itemp++;
+            }
+            printf("\n");
+            *(blk+2*j+1) = num+1;
+            writeBlockToDisk(blk,num,buf);
+            num++;
+            freeBlockInBuffer(blk,buf);
+        }
+        //OutputData(2000,num-2000,blk,buf,2);
+    }
+    else
+    {
+        printf("R S的交为空\n");
+    }
+
+ }
+/** \brief DifferenceOfRelation
+ *  R和S的差集
+ * \param unsigned int *blk
+ * \param Buffer *buf
+ * \param TempArray *temp
+ * \return void
+ *
+ */
+ void DifferenceOfRelation(unsigned int *blk,Buffer *buf,TempArray *temp)
+ {
+  printf("\t 1 R-S  \t 2 S-R\n");
+  int sel,ri,rj,si,sj,a,b,c,d,i,flag=0,num=0,blk_num=2500,blk_num1=3000;
+  unsigned int *wr_blk;
+  scanf("%d",&sel);
+  if(sel==1)
+  {
+      printf("R-S的差：\n");
+      for(ri=0;ri<16;ri++)
+      {
+       blk = readBlockFromDisk(ri,buf);
+       wr_blk = getNewBlockInBuffer(buf);
+       for(rj=0;rj<7;rj++)
+       {
+           flag=0;
+           a = *(blk+2*rj);
+           b = *(blk+2*rj+1);
+           for(i=0;i<temp_count;i++)
+           {
+               if(a == temp[i].c && b == temp[i].d)
+               {
+                   flag=1;
+                   break;
+               }
+           }
+           if(flag==0)
+           {
+               *(wr_blk+2*num) = a;
+               *(wr_blk+2*num+1) = b;
+               printf("(%d, %d) ",a,b);
+               num++;
+           }
+           if(ri==15&&rj==6)  //最后一个块不满的时候，存储
+           {
+                printf("\n");
+               *(wr_blk+2*num+1) = 0;
+               writeBlockToDisk(wr_blk,blk_num,buf);
+               freeBlockInBuffer(wr_blk,buf);
+           }
+       }
+        printf("\n");
+       if(num==7)
+       {
+           *(wr_blk+2*num+1) = blk_num+1;
+           writeBlockToDisk(wr_blk,blk_num,buf);
+           blk_num++;
+           num = 0;
+           freeBlockInBuffer(wr_blk,buf);
+       }
+       freeBlockInBuffer(blk,buf);
+      }
+      //OutputData(2500,blk_num-2500,blk,buf,2);
+  }
+  else if(sel==2)
+  {
+      printf("S-R的差：\n");
+    for(si=0;si<32;si++)
+      {
+       blk = readBlockFromDisk(si+20,buf);
+       wr_blk = getNewBlockInBuffer(buf);
+       for(sj=0;sj<7;sj++)
+       {
+           flag=0;
+           c = *(blk+2*sj);
+           d = *(blk+2*sj+1);
+           for(i=0;i<temp_count;i++)
+           {
+               if(c == temp[i].c && d == temp[i].d)
+               {
+                   flag=1;
+                   break;
+               }
+           }
+           if(flag==0)
+           {
+               *(wr_blk+2*num) = c;
+               *(wr_blk+2*num+1) = d;
+               printf("(%d, %d) ",c,d);
+               num++;
+           }
+           if(si==31&&sj==6)  //最后一个块不满的时候，存储
+           {
+                printf("\n");
+               *(wr_blk+2*num+1) = 0;
+               writeBlockToDisk(wr_blk,blk_num1,buf);
+               freeBlockInBuffer(wr_blk,buf);
+           }
+       }
+        printf("\n");
+       if(num==7)
+       {
+           *(wr_blk+2*num+1) = blk_num1+1;
+           writeBlockToDisk(wr_blk,blk_num1,buf);
+           blk_num1++;
+           num = 0;
+           freeBlockInBuffer(wr_blk,buf);
+       }
+       freeBlockInBuffer(blk,buf);
+      }
+  }
+  else
+  {
+    printf("输入错误\n");
+  }
+ }
 /** \brief 集合操作
  * 并、交、差
  * \param unsigned int * blk
@@ -523,23 +833,28 @@ void ConnectRelationship(unsigned int * blk,Buffer *buf)
 void CollectionRelationship(unsigned int * blk,Buffer *buf)
 {
     printf("\t 1 并 \t 2 交 \t 3 差 \t 其他结束\n");
+    struct TempArray *temp= malloc(sizeof(TempArray)*32);
     int sel=0;
+    CalculationIntersection(blk,buf,temp);
     while(sel!=-1)
     {
         scanf("%d",&sel);
         switch (sel)
         {
-        case 1: //并
+        case 1: //并  去重
             {
-                continue;
+                UnionOfRelation(blk,buf,temp);
+                break;
             }
         case 2: //交
             {
-                continue;
+                IntersectionOfRelation(blk,buf,temp);
+                 break;;
             }
         case 3://差
             {
-                continue;
+                DifferenceOfRelation(blk,buf,temp);
+                 break;;
             }
         default:
             break;
