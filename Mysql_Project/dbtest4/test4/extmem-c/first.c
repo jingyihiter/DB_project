@@ -21,29 +21,32 @@ int temp_count=0,tempflag=0;
  TempArray **BucketR;
   TempArray **BucketS;
 int Random(int low,int high);                            //生成随机数
-void OutputData(int beginAddr,int n,unsigned int *blk,Buffer *buf,int flag);
+void OutputData(int beginAddr,int n,unsigned int *blk,Buffer *buf,int flag); //打印数据
 void storeData(unsigned int * blk,Buffer *buf);          //存储数据
 TempArray *loadData(unsigned int * blk,Buffer *buf,int len,int addr,int templen);  //读取数据
 
-TempArray *sort(TempArray *temp,int len);
+TempArray *sort(TempArray *temp,int len);  //排序
+void Mmerge(int left,int mid,int right,TempArray *temp,TempArray *temp1);
 void Mpass(int len,int templen,TempArray *temp,TempArray *temp1);                                         //merge
 TempArray * MergeSort(TempArray *temp,int templen);       //归并排序
 
 void SelectRelationship(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);   //选择关系
+int Binary(int num,TempArray *temp,int len);
 void BinarySearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);   //二分搜索
+index * CreateIndex(unsigned int *blk,Buffer *buf,TempArray *temp,int addr,int len);
 void IndexSearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);    //索引算法
 
 void MappingRelationship(unsigned int * blk,Buffer *buf);  //投影关系
 unsigned int Merge(unsigned int left,int ln,unsigned int right,int rn,Buffer *buf,int addr);
-unsigned int Exsort(unsigned int saddr,int n,Buffer *buf,int addr);     //归并排序
+unsigned int Exsort(unsigned int saddr,int n,Buffer *buf,int addr);
 
 void ConnectRelationship(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);   //连接关系
-void Nst_Loop_Join(unsigned int * blk,Buffer *buf);
-void Sort_Merge_Join(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);
-void Hash_Join(unsigned int *blk, Buffer *buf,TempArray *tempR,TempArray *tempS,int addr);
+void Nst_Loop_Join(unsigned int * blk,Buffer *buf);   //Nst_Loop_Join
+void Sort_Merge_Join(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS); //sort_merge_join
+void Hash_Join(unsigned int *blk, Buffer *buf,TempArray *tempR,TempArray *tempS,int addr); //hash_join
 
 void CollectionRelationship(unsigned int * blk,Buffer *buf);  //集合操作
-void CalculationIntersection(unsigned int *blk,Buffer *buf,TempArray *temp);    //计算R S的交集
+void CalculationIntersection(unsigned int *blk,Buffer *buf,TempArray *temp);   //计算R S的交集
 void UnionOfRelation(unsigned int * blk,Buffer *buf,TempArray *temp);       //并集
 void IntersectionOfRelation(unsigned int *blk,Buffer *buf,TempArray *temp); //交集
 void DifferenceOfRelation(unsigned int *blk,Buffer *buf,TempArray *temp);   //差集
@@ -254,7 +257,6 @@ TempArray * loadData(unsigned int * blk,Buffer *buf,int len,int addr,int templen
     }
     return temp;
 }
-
 
 TempArray *sort(TempArray *temp,int len)
 {
