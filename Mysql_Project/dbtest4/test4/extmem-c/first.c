@@ -10,6 +10,12 @@ typedef struct TempArray
      int d;
      int blk;
  }TempArray;
+ typedef struct index  //索引
+ {
+     int a;
+     int blk;
+ }index;
+int index_countR=0,index_countS=0;
 int temp_count=0,tempflag=0;
 int Random(int low,int high);                            //生成随机数
 void OutputData(int beginAddr,int n,unsigned int *blk,Buffer *buf,int flag);
@@ -396,9 +402,98 @@ void BinarySearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tem
     }
 }
 
+
+index * CreateIndex(unsigned int *blk,Buffer *buf,TempArray *temp,int addr,int len) //对temp建立索引
+{
+    index *myIndex = malloc(sizeof(index)*40);
+    int i,index_count=0,w_count=0;
+    myIndex[index_count].a=temp[0].c;
+    myIndex[index_count].blk = addr;
+    blk = getNewBlockInBuffer(buf);
+    for(i=0;i<len;i++)
+    {
+        *(blk+2*w_count) = temp[i].c;
+        *(blk+2*w_count+1) = temp[i].d;
+         w_count++;
+        if(w_count == 7)           //块满存储
+        {
+            if(i==len-1)  *(blk+2*w_count+1)=0;//最后一个块的后继磁盘号是0
+            else *(blk+2*w_count+1) = addr+1;
+            writeBlockToDisk(blk,addr,buf);
+            freeBlockInBuffer(blk,buf);
+            addr++;
+            w_count=0;
+        }
+        if(temp[i].c > temp[i-1].c && i>0) //后一个币前一个大的时候，代表是重复中的第一个
+        {                           //建立索引
+            index_count++;
+            myIndex[index_count].a = temp[i].c;
+            if(w_count==0) myIndex[index_count].blk = addr-1;
+            else myIndex[index_count].blk = addr; //存储当前的块号
+        }
+
+    }
+    if(len==112) index_countR = index_count;
+    else index_countS = index_count;
+    return myIndex;
+}
 void IndexSearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS)
 {
+  index *indexR = CreateIndex(blk,buf,tempR,5000,112);
+  index *indexS = CreateIndex(blk,buf,tempS,6000,224);
+  int i,block=0,j;
+  for(i=0;i<=index_countR;i++)
+  {
+      if(indexR[i].a == 40)
+      {
+          block =indexR[i].blk; //查询第一个数据所在的磁盘块
+          printf("block %d\n",block);
+          while(block!=-1)
+          {
+              blk = readBlockFromDisk(block,buf);
+              for(j=0;j<7;j++)
+              {
+                  if(*(blk+2*j)==40)
+                    printf("(%d,%d) \n",*(blk+2*j),*(blk+2*j+1));
+                  if(*(blk+2*j)>40)
+                    block = -1;
+              }
+              if(*(blk+2*j+1)==0) //最后一块
+              {
+                  block = -1;
+              }
+              freeBlockInBuffer(blk,buf);
+              printf("\n");
+          }
 
+      }
+  }
+  for(i=0;i<=index_countS;i++)
+  {
+      if(indexS[i].a == 60)
+      {
+          block =indexS[i].blk; //查询第一个数据所在的磁盘块
+          printf("block %d\n",block);
+          while(block!=-1)
+          {
+              blk = readBlockFromDisk(block,buf);
+              for(j=0;j<7;j++)
+              {
+                  if(*(blk+2*j)==60)
+                    printf("(%d,%d) \n",*(blk+2*j),*(blk+2*j+1));
+                  if(*(blk+2*j)>60)
+                    block = -1;
+              }
+              if(*(blk+2*j+1)==0) //最后一块
+              {
+                  block = -1;
+              }
+              freeBlockInBuffer(blk,buf);
+              printf("\n");
+          }
+
+      }
+  }
 }
 /** \brief 选择关系
  * 线性搜索 二元搜索 索引算法
@@ -471,6 +566,7 @@ void SelectRelationship(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArra
          }
      case 3: //索引算法
          {
+             IndexSearch(blk,buf,tempR,tempS);
              break;
          }
      default:
