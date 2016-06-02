@@ -15,8 +15,11 @@ typedef struct TempArray
      int a;
      int blk;
  }index;
+int bucketR[5],bucketS[5];
 int index_countR=0,index_countS=0;
 int temp_count=0,tempflag=0;
+ TempArray **BucketR;
+  TempArray **BucketS;
 int Random(int low,int high);                            //生成随机数
 void OutputData(int beginAddr,int n,unsigned int *blk,Buffer *buf,int flag);
 void storeData(unsigned int * blk,Buffer *buf);          //存储数据
@@ -27,8 +30,8 @@ void Mpass(int len,int templen,TempArray *temp,TempArray *temp1);               
 TempArray * MergeSort(TempArray *temp,int templen);       //归并排序
 
 void SelectRelationship(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);   //选择关系
-void BinarySearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);
-void IndexSearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);
+void BinarySearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);   //二分搜索
+void IndexSearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);    //索引算法
 
 void MappingRelationship(unsigned int * blk,Buffer *buf);  //投影关系
 unsigned int Merge(unsigned int left,int ln,unsigned int right,int rn,Buffer *buf,int addr);
@@ -37,7 +40,7 @@ unsigned int Exsort(unsigned int saddr,int n,Buffer *buf,int addr);     //归并排
 void ConnectRelationship(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);   //连接关系
 void Nst_Loop_Join(unsigned int * blk,Buffer *buf);
 void Sort_Merge_Join(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);
-void Hash_Join(unsigned int *blk, Buffer *buf);
+void Hash_Join(unsigned int *blk, Buffer *buf,TempArray *tempR,TempArray *tempS,int addr);
 
 void CollectionRelationship(unsigned int * blk,Buffer *buf);  //集合操作
 void CalculationIntersection(unsigned int *blk,Buffer *buf,TempArray *temp);    //计算R S的交集
@@ -401,7 +404,6 @@ void BinarySearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tem
         printf("没有要求的元组\n");
     }
 }
-
 
 index * CreateIndex(unsigned int *blk,Buffer *buf,TempArray *temp,int addr,int len) //对temp建立索引
 {
@@ -777,7 +779,7 @@ void Nst_Loop_Join(unsigned int * blk,Buffer *buf)
      freeBlockInBuffer(blk,buf);
  }
  OutputData(1000,num-1000,blk,buf,3);
- printf("count = %d\n",count);
+ printf("\ncount = %d\n",count);
 }
 
 void Sort_Merge_Join(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS)
@@ -823,12 +825,89 @@ void Sort_Merge_Join(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *
     writeBlockToDisk(blk,num,buf);
     freeBlockInBuffer(blk,buf);
   }
-  printf("count = %d \n",count);
+  printf("\ncount = %d \n",count);
 }
 
-void Hash_Join(unsigned int *blk, Buffer *buf)
+TempArray ** FillBucket(unsigned int *blk,Buffer *buf,int addr,int block_len)
 {
+    int i,j,sel,p;
+    //TempArray bucket[5][7*block_len];
+    TempArray **bucket;
+    bucket = malloc(sizeof(TempArray*)*5);
+    for(i=0;i<5;i++)
+        bucket[i] = (TempArray *)malloc(sizeof(TempArray*)*block_len*7);
+    int bucketCon[5] = {0};
+    for(i=0;i<block_len;i++)
+    {
+        blk = readBlockFromDisk(addr+i,buf);
+        for(j=0;j<7;j++)
+        {
+            sel = (*(blk+2*j))%5;
+            p = bucketCon[sel];
+            bucket[sel][p].c = *(blk+2*j);
+            bucket[sel][p].d = *(blk+2*j+1);
+            //printf("%d-%d,%d,%d \n",sel,p, bucket[sel][p].c, bucket[sel][p].d);
+            bucketCon[sel]++;
+        }
+        freeBlockInBuffer(blk, buf);
+    }
+    for(i=0;i<5;i++)
+   {
+    if(addr==0) //R
+    {
+       bucketR[i] = bucketCon[i];
+    }
+    else
+    {
+       bucketS[i] = bucketCon[i];
+    }
+   }
+    return bucket;
+}
 
+void Hash_Join(unsigned int *blk, Buffer *buf,TempArray *tempR,TempArray *tempS,int addr)
+{
+    BucketR = FillBucket(blk,buf,0,16);    //R桶
+    BucketS = FillBucket(blk,buf,20,32);    //S桶
+    int i,rj=0,sj=0;
+    int numR,numS,w_count=0,count=0;
+    blk = getNewBlockInBuffer(buf);
+    for(i=0;i<5;i++)
+    {
+      numR = bucketR[i];
+      numS = bucketS[i];
+      for(rj=0;rj<numR;rj++)
+      {
+          for(sj=0;sj<numS;sj++)
+          {
+               if(BucketR[i][rj].c == BucketS[i][sj].c)
+                {
+                    printf("(%d, %d, %d) ",BucketR[i][rj].c,BucketR[i][rj].d,BucketS[i][sj].d);
+                    *(blk+w_count) = BucketR[i][rj].c;
+                    *(blk+w_count+1) = BucketR[i][rj].d;
+                    *(blk+w_count+2) = BucketS[i][sj].d;
+                    w_count+=3;
+                    count++;
+                }
+                if(w_count==15)
+                {
+                    printf("\n");
+                    *(blk+w_count) = addr+1;
+                    writeBlockToDisk(blk,addr,buf);
+                    addr++;
+                    freeBlockInBuffer(blk,buf);
+                    w_count=0;
+                }
+                if(rj==numR-1 && sj==numS-1 && w_count<15)
+                {
+                    *(blk+w_count) = 0;
+                    writeBlockToDisk(blk,addr,buf);
+                    freeBlockInBuffer(blk,buf);
+                }
+          }
+      }
+    }
+    printf("\n count =%d \n",count);
 }
 /** \brief 连接关系
  * Nst_Loop_Join算法 Sort_Merge_Join算法 Hash_Join算法
@@ -859,6 +938,7 @@ void ConnectRelationship(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArr
             }
         case 3: //Hash_Join算法
             {
+                Hash_Join(blk,buf,tempR,tempS,6000);
                 continue;
             }
         default:
