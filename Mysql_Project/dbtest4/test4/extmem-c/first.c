@@ -8,22 +8,29 @@ typedef struct TempArray
  {
      int c;
      int d;
+     int blk;
  }TempArray;
 int temp_count=0,tempflag=0;
 int Random(int low,int high);                            //生成随机数
 void OutputData(int beginAddr,int n,unsigned int *blk,Buffer *buf,int flag);
 void storeData(unsigned int * blk,Buffer *buf);          //存储数据
-void loadData(unsigned int * blk,Buffer *buf);            //读取数据
+TempArray *loadData(unsigned int * blk,Buffer *buf,int len,int addr,int templen);  //读取数据
 
-void SelectRelationship(unsigned int * blk,Buffer *buf);   //选择关系
+TempArray *sort(TempArray *temp,int len);
+void Mpass(int len,int templen,TempArray *temp,TempArray *temp1);                                         //merge
+TempArray * MergeSort(TempArray *temp,int templen);       //归并排序
+
+void SelectRelationship(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);   //选择关系
+void BinarySearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);
+void IndexSearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);
 
 void MappingRelationship(unsigned int * blk,Buffer *buf);  //投影关系
-unsigned int Merge(unsigned int left,int ln,unsigned int right,int rn,Buffer *buf);
-unsigned int Exsort(unsigned int saddr,int n,Buffer *buf);     //归并排序
+unsigned int Merge(unsigned int left,int ln,unsigned int right,int rn,Buffer *buf,int addr);
+unsigned int Exsort(unsigned int saddr,int n,Buffer *buf,int addr);     //归并排序
 
-void ConnectRelationship(unsigned int * blk,Buffer *buf);   //连接关系
+void ConnectRelationship(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);   //连接关系
 void Nst_Loop_Join(unsigned int * blk,Buffer *buf);
-void Sort_Merge_Join(unsigned int * blk,Buffer *buf);
+void Sort_Merge_Join(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);
 void Hash_Join(unsigned int *blk, Buffer *buf);
 
 void CollectionRelationship(unsigned int * blk,Buffer *buf);  //集合操作
@@ -47,7 +54,10 @@ int main()
         return -1;
     }
     //storeData(blk, &buf);
-    //loadData(blk,&buf);
+    TempArray *tempR = loadData(blk,&buf,16,0,112);
+    TempArray *tempS = loadData(blk,&buf,32,20,224);
+    tempR = sort(tempR,112);
+    tempS = sort(tempS,224);
     while(1)
     {
         printf("\t***** 1 选择\t2 投影\t3 连接\t 4 集合操作 *****\n\n ");
@@ -56,7 +66,7 @@ int main()
         {
         case 1:  //选择关系
             {
-                SelectRelationship(blk,&buf);
+                SelectRelationship(blk,&buf,tempR,tempS);
                 continue;
             }
         case 2: //投影关系
@@ -66,7 +76,7 @@ int main()
             }
         case 3:  //连接关系
             {
-                ConnectRelationship(blk,&buf);
+                ConnectRelationship(blk,&buf,tempR,tempS);
                continue;
             }
         case 4: //集合操作
@@ -205,43 +215,190 @@ void OutputData(int beginAddr,int n,unsigned int *blk,Buffer *buf,int flag)
  *   loadData
  * \param  unsigned int * blk
  * \param  Buffer * buf
- * \return void
+ * \return TempArray *
  *
  */
-void loadData(unsigned int * blk,Buffer *buf)
+TempArray * loadData(unsigned int * blk,Buffer *buf,int len,int addr,int templen)
 {
-    unsigned int a,b,c,d;
-    int ri,rj,si,sj;
-    for(ri=0;ri<16;ri++)
+    unsigned int a,b;
+    TempArray *temp;
+    temp = malloc(sizeof(TempArray)*templen);
+    int i,j,temp_num=0;
+    for(i=0;i<len;i++)
     {
-        if((blk = readBlockFromDisk(ri,buf))==NULL)
+        if((blk = readBlockFromDisk(addr+i,buf))==NULL)
         {
             perror("Reading Block Failed!\n");
             return;
         }
-        for(rj=0;rj<7;rj++)
+        for(j=0;j<7;j++)
         {
-            a = *(blk+2*rj);
-            b = *(blk+2*rj+1);
-            printf("R = %d,%d\n",a,b);
+            a = *(blk+2*j);
+            b = *(blk+2*j+1);
+            //printf("R = %d,%d\n",a,b);
+            temp[temp_num].c =  a;
+            temp[temp_num].d = b;
+            temp[temp_num].blk = addr+i;
+            temp_num++;
         }
         freeBlockInBuffer(blk,buf);
     }
-    for(si=0;si<32;si++)
+    return temp;
+}
+
+
+TempArray *sort(TempArray *temp,int len)
+{
+    int i,j;
+    TempArray tempp;
+    for(i=0;i<len;i++)
     {
-      if((blk = readBlockFromDisk(si+20,buf))==NULL)
+        for(j=len-1;j>=i+1;j--)
         {
-            perror("Reading Block Failed!\n");
-            return;
+            if(temp[j].c < temp[j-1].c)
+            {
+                tempp = temp[j];
+                temp[j] =temp[j-1];
+                temp[j-1] = tempp;
+            }
         }
-     for(sj=0;sj<7;sj++)
-     {
-         c = *(blk+2*sj);
-         d = *(blk+2*sj+1);
-         printf("S = %d,%d\n",c,d);
-     }
-     freeBlockInBuffer(blk,buf);
     }
+    return temp;
+}
+void Mmerge(int left,int mid,int right,TempArray *temp,TempArray *temp1)
+{
+    int i=left,j=mid+1,k=left;
+    while(i<=mid&&j<=right)
+    {
+        temp1[k++]=temp[i].c <= temp[j].c ?temp[i++]:temp[j++];
+    }
+    while(i<=mid) temp1[k++]=temp[i++];
+    while(j<=right) temp1[k++]=temp[j++];
+}
+
+void Mpass(int len,int templen,TempArray *temp,TempArray *temp1)
+{
+  int i=1,t;
+  while(i<2*(templen-2*len+1))
+  {
+      Mmerge(i,i+len-1,i+2*len-1,temp,temp1);
+      i = i+2*len;
+  }
+  if((i+len-1) < templen)
+  {
+      Mmerge(i,i+len-1,templen,temp,temp1);
+  }
+  else
+  {
+      for(t=i;t<=templen;t++)
+      {
+          temp1[t]=temp[t];
+      }
+  }
+}
+TempArray * MergeSort(TempArray *temp,int templen)
+{
+    int len=1;
+    TempArray *temp1 = malloc(sizeof(TempArray)*templen);
+    while(len < templen)
+    {
+        Mpass(len,templen,temp,temp1);
+        len = 2*len;
+        Mpass(len,templen,temp1,temp);
+        len=len*2;
+    }
+    return temp1;
+}
+/** \brief BinarySearch
+ * 二分搜索
+ * \param
+ * \param
+ * \return void
+ *
+ */
+int Binary(int num,TempArray *temp,int len)
+{
+   int left=0,right=len,mid;
+   while(left <= right)
+   {
+       mid = (left+right)/2;
+       if(temp[mid].c == num)
+       {
+           return mid;
+       }
+       if(temp[mid].c < num)
+       {
+          left = mid+1;
+       }
+       else
+        right = mid-1;
+   }
+  return -1;
+}
+void BinarySearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS)
+{
+  int Rnum = Binary(40,tempR,112);
+  int snum = Binary(60,tempS,224);
+  int i,j,Ri=Rnum,Si=snum,num=300,t_count;
+  TempArray *temp_ = malloc(sizeof(TempArray)*336);
+  if(Rnum!=-1)
+  {
+      i=0;
+      temp_[i]=tempR[Rnum];
+      while((tempR[Rnum+1].c==40) && (Rnum <= 112)) //向上重复的
+      {
+
+          temp_[++i] = tempR[++Rnum];
+      }
+      while((tempR[Ri-1].c==40) && (Ri>=1)) //向下重复的
+      {
+
+          temp_[++i] = tempR[--Ri];
+      }
+  }
+  if(snum!=-1)
+  {
+   temp_[++i] = tempS[snum];
+   while(tempS[snum+1].c==60 && snum<=224)
+   {
+
+       temp_[++i] = tempS[++snum];
+   }
+   while(tempS[Si-1].c==60 && Si>=0)
+   {
+       temp_[++i] = tempS[--Si];
+   }
+   blk = getNewBlockInBuffer(buf);
+   t_count=0;
+   for(j=0;j<=i;j++)
+   {
+       printf("(%d, %d) \n",temp_[j].c,temp_[j].d);
+       *(blk+2*t_count) = temp_[j].c;
+       *(blk+2*t_count+1) = temp_[j].d;
+       if(t_count == 7)
+       {
+           *(blk+2*t_count) =num+1;
+           writeBlockToDisk(blk,num,buf);
+           freeBlockInBuffer(blk,buf);
+           num++;
+           t_count = 0;
+       }
+       if(j==i&&t_count<7) //最后一个块不满
+       {
+           writeBlockToDisk(blk,num,buf);
+           freeBlockInBuffer(blk,buf);
+       }
+   }
+  }
+  else
+    {
+        printf("没有要求的元组\n");
+    }
+}
+
+void IndexSearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS)
+{
+
 }
 /** \brief 选择关系
  * 线性搜索 二元搜索 索引算法
@@ -251,7 +408,7 @@ void loadData(unsigned int * blk,Buffer *buf)
  * \return void
  *
  */
-void SelectRelationship(unsigned int * blk,Buffer *buf)
+void SelectRelationship(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS)
 {
  printf("\t1 线性搜索   2 二元搜素   3 索引算法   -1 结束\n");
  int sel=0;
@@ -290,9 +447,9 @@ void SelectRelationship(unsigned int * blk,Buffer *buf)
                  blk = readBlockFromDisk(i+20,buf);
                  for(j=0;j<7;j++)
                  {
-                     if(*(blk+2*j)==60)
+                     if(*(blk+2*j)==40)
                      {
-                         c = 60;
+                         c = 40;
                          d = *(blk+2*j+1);
                          printf("c = %d, d = %d\n",c,d);
                           disk_blk = getNewBlockInBuffer(buf);
@@ -309,6 +466,7 @@ void SelectRelationship(unsigned int * blk,Buffer *buf)
          }
      case 2: //二元搜索
          {
+             BinarySearch(blk,buf,tempR,tempS);
              break;
          }
      case 3: //索引算法
@@ -324,11 +482,11 @@ void SelectRelationship(unsigned int * blk,Buffer *buf)
 
 }
 
-unsigned int Merge(unsigned int left,int ln,unsigned int right,int rn,Buffer *buf)
+unsigned int Merge(unsigned int left,int ln,unsigned int right,int rn,Buffer *buf,int addr)
 {
     int l=0,r=0;//计数
     int offset=0,i;
-    unsigned int tmpaddr=left+500;//结果存入的地址
+    unsigned int tmpaddr=left+addr;//结果存入的地址
     unsigned int *blk1,*blk2;
     while(l<ln||r<rn)
     {
@@ -364,14 +522,14 @@ unsigned int Merge(unsigned int left,int ln,unsigned int right,int rn,Buffer *bu
     return left;
 }
 
-unsigned int Exsort(unsigned int saddr,int n,Buffer *buf)
+unsigned int Exsort(unsigned int saddr,int n,Buffer *buf,int addr)
 {
     unsigned int left,right;
     if(n==1)   ///complete sorting
         return saddr;
-    left=Exsort(saddr,n/2,buf);
-    right=Exsort(saddr+n/2,n-n/2,buf);
-    return Merge(left,n/2,right,n-n/2,buf);
+    left=Exsort(saddr,n/2,buf,addr);
+    right=Exsort(saddr+n/2,n-n/2,buf,addr);
+    return Merge(left,n/2,right,n-n/2,buf,addr);
 }
 /** \brief 投影关系
  * 实现关系投影，并存储在磁盘上
@@ -407,7 +565,7 @@ void MappingRelationship(unsigned int * blk,Buffer *buf)  //对R.A投影
     }
     printf("\n");
     printf("\t排序后 R.A:\n");
-    basic = Exsort(basic,num,buf);
+    basic = Exsort(basic,num,buf,500);
     //printf("%d\n",basic);
     for(ri=0;ri<num;ri++)
     {
@@ -470,7 +628,7 @@ END:    printf("\n\n");
 
 void Nst_Loop_Join(unsigned int * blk,Buffer *buf)
 {
- int ri,rj,si,sj,num=1000,blk_count=0;
+ int ri,rj,si,sj,num=1000,blk_count=0,count=0;
  int a,b,c,d;
  unsigned int *desk_blk,*wr_blk;
  for(ri=0;ri<16;ri++)
@@ -496,6 +654,7 @@ void Nst_Loop_Join(unsigned int * blk,Buffer *buf)
                      *(wr_blk+blk_count)=a;
                      *(wr_blk+blk_count+1)=b;
                      *(wr_blk+blk_count+2)=d;
+                     count++;
                      blk_count+=3;
                      if(ri==15&&si==31)   //如果是最后一个块（不满），也进行存储
                      {
@@ -522,11 +681,53 @@ void Nst_Loop_Join(unsigned int * blk,Buffer *buf)
      freeBlockInBuffer(blk,buf);
  }
  OutputData(1000,num-1000,blk,buf,3);
+ printf("count = %d\n",count);
 }
 
-void Sort_Merge_Join(unsigned int * blk,Buffer *buf)
+void Sort_Merge_Join(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS)
 {
-
+  int i=0,j=0,count=0,flag=0,num = 4000,w_count=0;
+  blk = getNewBlockInBuffer(buf); //存结果
+  while(i<112&&j<224)
+  {
+      if(tempR[i].c == tempS[j].c)
+      {
+        printf("(%d,%d,%d) ",tempR[i].c,tempR[i].d,tempS[j].d);
+        *(blk+w_count)=tempR[i].c;
+        *(blk+w_count+1) = tempR[i].d;
+        *(blk+w_count+2) = tempS[j].d;
+        w_count+=3;
+        if(tempR[i-1].c < tempR[i].c || i==0) flag=i;
+        count++;
+        if(count%6==0) printf("\n");
+        if(i==111) //边缘特殊处理，因找不到比i最后一个还大的,j不能自增
+        {
+            i=flag;
+            j++;
+        }
+        else i++;
+      }
+      else if(tempR[i].c < tempS[j].c) i++;
+      else
+        {
+            j++;
+            if(tempS[j].c == tempS[j-1].c)  i = flag;
+        }
+      if(w_count==15) //够一块存储
+      {
+          *(blk+w_count) = num+1;
+          writeBlockToDisk(blk,num,buf);
+          freeBlockInBuffer(blk,buf);
+          num++;
+          w_count=0;
+      }
+  }
+  if(w_count!=0&&w_count<15) //最后不满一块的时候，直接存储
+  {
+    writeBlockToDisk(blk,num,buf);
+    freeBlockInBuffer(blk,buf);
+  }
+  printf("count = %d \n",count);
 }
 
 void Hash_Join(unsigned int *blk, Buffer *buf)
@@ -541,7 +742,7 @@ void Hash_Join(unsigned int *blk, Buffer *buf)
  * \return void
  *
  */
-void ConnectRelationship(unsigned int * blk,Buffer *buf)
+void ConnectRelationship(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS)
 {
     printf("\t1 Nst_Loop_Join \t2 Sort_Merge_Join \t3 Hash_Join \t其他结束\n");
     int sel=0;
@@ -557,6 +758,7 @@ void ConnectRelationship(unsigned int * blk,Buffer *buf)
             }
         case 2: //Sort_Merge_Join算法
             {
+                Sort_Merge_Join(blk,buf,tempR,tempS);
                 continue;
             }
         case 3: //Hash_Join算法
