@@ -542,9 +542,9 @@ void SelectRelationship(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArra
                  blk = readBlockFromDisk(i+20,buf);
                  for(j=0;j<7;j++)
                  {
-                     if(*(blk+2*j)==40)
+                     if(*(blk+2*j)==60)
                      {
-                         c = 40;
+                         c = 60;
                          d = *(blk+2*j+1);
                          printf("c = %d, d = %d\n",c,d);
                           disk_blk = getNewBlockInBuffer(buf);
@@ -825,7 +825,7 @@ void Sort_Merge_Join(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *
         if(tempR[i-1].c < tempR[i].c || i==0) flag=i;
         count++;
         if(count%6==0) printf("\n");
-        if(i==111) //边缘特殊处理，因找不到比i最后一个还大的,j不能自增
+        if(i==111) //边缘特殊处理，因找不到比i最后一个还大的,i不能自增
         {
             i=flag;
             j++;
