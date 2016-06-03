@@ -15,21 +15,18 @@ typedef struct TempArray
      int a;
      int blk;
  }index;
+ //全局变量定义
 int bucketR[5],bucketS[5];
 int index_countR=0,index_countS=0;
 int temp_count=0,tempflag=0;
- TempArray **BucketR;
-  TempArray **BucketS;
+TempArray **BucketR;
+TempArray **BucketS;
 int Random(int low,int high);                            //生成随机数
 void OutputData(int beginAddr,int n,unsigned int *blk,Buffer *buf,int flag); //打印数据
 void storeData(unsigned int * blk,Buffer *buf);          //存储数据
 TempArray *loadData(unsigned int * blk,Buffer *buf,int len,int addr,int templen);  //读取数据
 
 TempArray *sort(TempArray *temp,int len);  //排序
-void Mmerge(int left,int mid,int right,TempArray *temp,TempArray *temp1);
-void Mpass(int len,int templen,TempArray *temp,TempArray *temp1);                                         //merge
-TempArray * MergeSort(TempArray *temp,int templen);       //归并排序
-
 void SelectRelationship(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);   //选择关系
 int Binary(int num,TempArray *temp,int len);
 void BinarySearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS);   //二分搜索
@@ -110,7 +107,7 @@ int main()
     return 0;
 }
 /** \brief  生成随机数
- *  Random
+ *  Random 生成low-high之间的随机数
  * \param int low
  * \param  int high
  * \return  int
@@ -121,7 +118,7 @@ int Random(int low,int high)  //随机数生成
     return rand()%(high-low)+low+1;
 }
 /** \brief  存储数据
- *     storeData
+ *     storeData 随机生成的数据存储 R 0-15  S 20-51
  * \param unsigned int *blk
  * \param  Buffer * buf
  * \return void
@@ -180,11 +177,11 @@ void storeData(unsigned int * blk,Buffer *buf) //存储数据
 }
 /** \brief OutputData
  * 打印存储的数据
- * \param int beginAddr
- * \param int n
+ * \param int beginAddr  块号起始地址
+ * \param int n          块数目
  * \param unsigned int *blk
  * \param Buffer *buf
- * \param int flag
+ * \param int flag   标记是R\S
  * \return void
  *
  */
@@ -224,9 +221,12 @@ void OutputData(int beginAddr,int n,unsigned int *blk,Buffer *buf,int flag)
     }
 }
 /** \brief 读取数据
- *   loadData
+ *   loadData  读取块中数据到TempArray
  * \param  unsigned int * blk
  * \param  Buffer * buf
+ * \param  int len 块号数
+ * \param  int addr 起始块号
+ * \param  int templen 元组最大数目
  * \return TempArray *
  *
  */
@@ -257,7 +257,13 @@ TempArray * loadData(unsigned int * blk,Buffer *buf,int len,int addr,int templen
     }
     return temp;
 }
-
+/** \brief 排序
+ * sort简单冒泡排序
+ * \param  TempArray *temp 对temp排序
+ * \param  int len 排序元组数目
+ * \return TempArray *
+ *
+ */
 TempArray *sort(TempArray *temp,int len)
 {
     int i,j;
@@ -276,55 +282,13 @@ TempArray *sort(TempArray *temp,int len)
     }
     return temp;
 }
-void Mmerge(int left,int mid,int right,TempArray *temp,TempArray *temp1)
-{
-    int i=left,j=mid+1,k=left;
-    while(i<=mid&&j<=right)
-    {
-        temp1[k++]=temp[i].c <= temp[j].c ?temp[i++]:temp[j++];
-    }
-    while(i<=mid) temp1[k++]=temp[i++];
-    while(j<=right) temp1[k++]=temp[j++];
-}
 
-void Mpass(int len,int templen,TempArray *temp,TempArray *temp1)
-{
-  int i=1,t;
-  while(i<2*(templen-2*len+1))
-  {
-      Mmerge(i,i+len-1,i+2*len-1,temp,temp1);
-      i = i+2*len;
-  }
-  if((i+len-1) < templen)
-  {
-      Mmerge(i,i+len-1,templen,temp,temp1);
-  }
-  else
-  {
-      for(t=i;t<=templen;t++)
-      {
-          temp1[t]=temp[t];
-      }
-  }
-}
-TempArray * MergeSort(TempArray *temp,int templen)
-{
-    int len=1;
-    TempArray *temp1 = malloc(sizeof(TempArray)*templen);
-    while(len < templen)
-    {
-        Mpass(len,templen,temp,temp1);
-        len = 2*len;
-        Mpass(len,templen,temp1,temp);
-        len=len*2;
-    }
-    return temp1;
-}
 /** \brief BinarySearch
  * 二分搜索
- * \param
- * \param
- * \return void
+ * \param int num  查找的key值
+ * \param TempArray *temp 数据
+ * \param int len    元组数目
+ * \return int 返回查找元组所在的位置
  *
  */
 int Binary(int num,TempArray *temp,int len)
@@ -346,6 +310,16 @@ int Binary(int num,TempArray *temp,int len)
    }
   return -1;
 }
+/** \brief BinarySearch
+ *  二分搜索
+ * \param unsigned int * blk
+ * \param Buffer *buf
+ * \param TempArray *tempR R元组
+ * \param TempArray *tempS S元组
+ * \return
+ *
+ */
+
 void BinarySearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS)
 {
   int Rnum = Binary(40,tempR,112);
@@ -406,6 +380,16 @@ void BinarySearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tem
         printf("没有要求的元组\n");
     }
 }
+/** \brief 创建索引
+ * CreateIndex
+ * \param TempArray *temp 对temp创建索引
+ * \param int addr 索引存储的块号
+ * \param int len  块数
+ * \param unsigned int *blk
+ * \param Buffer *buf
+ * \return index* 返回创建的索引
+ *
+ */
 
 index * CreateIndex(unsigned int *blk,Buffer *buf,TempArray *temp,int addr,int len) //对temp建立索引
 {
@@ -441,6 +425,16 @@ index * CreateIndex(unsigned int *blk,Buffer *buf,TempArray *temp,int addr,int l
     else index_countS = index_count;
     return myIndex;
 }
+/** \brief 索引算法
+ * IndexSearch  索引搜索
+ * \param unsigned int * blk
+ * \param Buffer *buf
+ * \param TempArray *tempR R元组
+ * \param TempArray *tempS S元组
+ * \return void
+ *
+ */
+
 void IndexSearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS)
 {
   index *indexR = CreateIndex(blk,buf,tempR,5000,112);
@@ -504,6 +498,8 @@ void IndexSearch(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *temp
  * 结果存放磁盘
  * \param unsigned int * blk
  * \param Buffer *buf
+ * \param TempArray *tempR
+ * \param TempArray *tempS
  * \return void
  *
  */
@@ -581,6 +577,17 @@ void SelectRelationship(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArra
  }
 
 }
+/** \brief 归并
+ * Merge
+ * \param unsigned int left
+ * \param int ln
+ * \param unsigned int right
+ * \param int rn
+ * \param Buffer *buf
+ * \param int addr
+ * \return unsigned int
+ *
+ */
 
 unsigned int Merge(unsigned int left,int ln,unsigned int right,int rn,Buffer *buf,int addr)
 {
@@ -621,6 +628,15 @@ unsigned int Merge(unsigned int left,int ln,unsigned int right,int rn,Buffer *bu
     }
     return left;
 }
+/** \brief 归并
+ * Exsort
+ * \param unsigned int saddr
+ * \param int n
+ * \param Buffer *buf
+ * \param int addr
+ * \return unsigned int
+ *
+ */
 
 unsigned int Exsort(unsigned int saddr,int n,Buffer *buf,int addr)
 {
@@ -783,6 +799,15 @@ void Nst_Loop_Join(unsigned int * blk,Buffer *buf)
  OutputData(1000,num-1000,blk,buf,3);
  printf("\ncount = %d\n",count);
 }
+/** \brief Sort_Merge_Join
+ * Sort_Merge_Join
+ * \param unsigned int * blk
+ * \param Buffer *buf
+ * \param TempArray *tempR
+ * \param TempArray *tempS
+ * \return void
+ *
+ */
 
 void Sort_Merge_Join(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *tempS)
 {
@@ -829,6 +854,15 @@ void Sort_Merge_Join(unsigned int * blk,Buffer *buf,TempArray *tempR,TempArray *
   }
   printf("\ncount = %d \n",count);
 }
+/** \brief FillBucket
+ * 填充桶
+ * \param unsigned int *blk
+ * \param Buffer *buf
+ * \param int addr  块起始地址
+ * \param int block_len 块数目
+ * \return TempArray **
+ *
+ */
 
 TempArray ** FillBucket(unsigned int *blk,Buffer *buf,int addr,int block_len)
 {
@@ -866,6 +900,16 @@ TempArray ** FillBucket(unsigned int *blk,Buffer *buf,int addr,int block_len)
    }
     return bucket;
 }
+/** \brief Hash_Join
+ * Hash_Join
+ * \param unsigned int *blk
+ * \param Buffer *buf
+ * \param TempArray *tempR R元组
+ * \param TempArray *tempS S元组
+ * \param int addr hash_join结果存储块起始地址
+ * \return void
+ *
+ */
 
 void Hash_Join(unsigned int *blk, Buffer *buf,TempArray *tempR,TempArray *tempS,int addr)
 {
