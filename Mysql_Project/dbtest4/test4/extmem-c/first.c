@@ -63,6 +63,11 @@ int main()
         return -1;
     }
     //storeData(blk, &buf);
+    printf("生成数据：\n");
+    printf("R\n");
+    OutputData(0,16,blk,&buf,2);
+    printf("\nS\n");
+    OutputData(20,32,blk,&buf,2);
     TempArray *tempR = loadData(blk,&buf,16,0,112);
     TempArray *tempS = loadData(blk,&buf,32,20,224);
     tempR = sort(tempR,112);

@@ -2,14 +2,9 @@
 <CodeBlocks_layout_file>
 	<FileVersion major="1" minor="0" />
 	<ActiveTarget name="Debug" />
-	<File name="test.c" open="1" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="extmem.c" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="976" topLine="7" />
-		</Cursor>
-	</File>
-	<File name="first.c" open="1" top="1" tabpos="4" split="0" active="1" splitpos="0" zoom_1="1" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="23831" topLine="1065" />
+			<Cursor1 position="1589" topLine="78" />
 		</Cursor>
 	</File>
 	<File name="extmem.h" open="1" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -17,9 +12,28 @@
 			<Cursor1 position="1149" topLine="18" />
 		</Cursor>
 	</File>
-	<File name="extmem.c" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="test.c" open="1" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="1589" topLine="78" />
+			<Cursor1 position="976" topLine="7" />
 		</Cursor>
+	</File>
+	<File name="first.c" open="1" top="1" tabpos="4" split="0" active="1" splitpos="0" zoom_1="1" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="33874" topLine="410" />
+		</Cursor>
+		<Folding>
+			<Collapse line="443" />
+			<Collapse line="511" />
+			<Collapse line="597" />
+			<Collapse line="646" />
+			<Collapse line="662" />
+			<Collapse line="750" />
+			<Collapse line="817" />
+			<Collapse line="872" />
+			<Collapse line="919" />
+			<Collapse line="971" />
+			<Collapse line="1008" />
+			<Collapse line="1049" />
+		</Folding>
 	</File>
 </CodeBlocks_layout_file>
