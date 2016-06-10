@@ -22,7 +22,7 @@ sql_keys = ["SELECT","PROJECTION","JOIN"]
 Table_list = [["ESSN","ADDRESS","SALARY","SUPERSSN","ENAME","DNO"], #EMPLOYEE
 	["DNO","DNAME","DNEMBER","MGRSSN","MGRSTARTDATE"],            #DEPARTMENT
 	["PNAME","PNO","PLOCATION","DNO"],                            #PROJECT
-	["HOURS","ESSN","PNO"]]                                     #WORKS_ON
+	["HOURS","ESSN","PNO"]]                                       #WORKS_ON
 
 
 ''' 打印原始执行树'''
@@ -33,6 +33,7 @@ def printOriginTree(sql):
     print "\t ****origin tree****\n"
     for i in range(len(sql)):
         if sql[i]=="SELECT" or sql[i] == "PROJECTION":
+            currentNode.statement = sql[i]
             temp = sql[i]
             s = '' 
             j = i+1
@@ -43,35 +44,52 @@ def printOriginTree(sql):
                     s = s + sql[j]
                     j=j+1
                 print temp, s,"\n"
-                i = j
-            if currentNode.statement != None:
-                childList = MyList(None,None,None,None)
-                childList.statement = temp
-                childList.content = s
-                currentNode.LnextNode =childList
-                currentNode =  currentNode.LnextNode
-            else:
-                currentNode.statement = temp
-                currentNode.content = s
-        if sql[i]=="JOIN":
+                i = j       
+        elif sql[i] =='[' or sql[i] ==']' or sql[i]==')':
+            pass
+        elif sql[i] == '(':
+            currentNode.LnextNode = MyList(None,None,None,None)
+            currentNode =  currentNode.LnextNode
+        elif sql[i]=="JOIN":
             print "\t" + sql[i]
             x = sql[i-1] + "\t\t" + sql[i+1] + "\n"
             s = []
             s.append(sql[i-1])
             s.append(sql[i+1])
             print x
-            if currentNode.statement != None:
-                childList = MyList(None,None,None,None)
-                childList.statement = sql[i]
-                childList.content = s
-                currentNode.nextNode = childList
-                currentNode =  currentNode.nextNode
-            else:
-                currentNode.statement = sql[i]
-                currentNode.content = s
+            currentNode.statement = sql[i]
+            currentNode.content = None
+            currentNode.LnextNode = MyList(None,None,None,None)
+            currentNode.LnextNode.content = sql[i-1]
+            currentNode.RnextNode = MyList(None,None,None,None)
+            currentNode.RnextNode.content = sql[i+1]
+            i = i+1
+        else:
+            if currentNode.content == None:
+                currentNode.content =''
+            if sql[i+1] == "JOIN":
+                continue
+            currentNode.content = currentNode.content+sql[i]
     return mylist
 
- 
+''' 测试存储的树的正确性'''
+def testTreePrint(sql_tree):
+    print "test tree OK"
+    current = sql_tree
+    s = []
+    while current !=None or len(s)!=0:
+        while current!=None:
+            if current.statement !=None:
+                if current.statement != None:
+                    print current.statement, current.content
+                else:
+                    print current.statement
+            
+            s.append(current)
+            current = current.RnextNode
+        if len(s)!=0:
+            current = s.pop()
+            current = current.LnextNode
            
 ''' 查找属性所在表'''            
 def search(s):
@@ -189,8 +207,9 @@ while(1):
     if sel == '1':
         sql_arr = sql0.split(" ")
         sql_node =  printOriginTree(sql_arr)
-        afterParseTree = parseTree(sql_node,sql_arr)
-        printAfterParseTree(afterParseTree)
+        testTreePrint(sql_node)
+        #afterParseTree = parseTree(sql_node,sql_arr)
+        #printAfterParseTree(afterParseTree)
     elif sel == '2':
         sql_arr = sql1.split(" ")
         sql_node =  printOriginTree(sql_arr)
