@@ -52,7 +52,7 @@ def printOriginTree(sql):
             currentNode =  currentNode.LnextNode
         elif sql[i]=="JOIN":
             print "\t" + sql[i]
-            x = sql[i-1] + "\t\t" + sql[i+1] + "\n"
+            x = sql[i-1] + "\t" + sql[i+1] + "\n"
             s = []
             s.append(sql[i-1])
             s.append(sql[i+1])
@@ -80,8 +80,11 @@ def testTreePrint(sql_tree):
     while current !=None or len(s)!=0:
         while current!=None:
             if current.statement !=None:
-                if current.statement != None:
+                if current.statement != None and current.statement!="JOIN":
                     print current.statement, current.content
+                elif current.statement == "JOIN":
+                    print '\t',current.statement
+                    print current.LnextNode.content,"\t",current.RnextNode.content
                 else:
                     print current.statement
             
@@ -213,6 +216,7 @@ while(1):
     elif sel == '2':
         sql_arr = sql1.split(" ")
         sql_node =  printOriginTree(sql_arr)
+        testTreePrint(sql_node)
         #afterParseTree = parseTree(sql_node,sql_arr)
         #printAfterParseTree(afterParseTree)
     elif sel == '3':
