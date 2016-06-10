@@ -71,20 +71,22 @@ def printOriginTree(sql):
                 currentNode.content = s
     return mylist
 
-            
+ 
+           
 ''' 查找属性所在表'''            
 def search(s):
+    table_list = []
     for i in range(4):
         if s in Table_list[i]:
             if i == 0:
-                return "EMPLOYEE"
+                table_list.append("EMPLOYEE")
             elif i==1:
-                return "DEPARTMENT"
+                table_list.append("DEPARTMENT")
             elif i==2:
-                return "PROJECTION"
+                table_list.append("PROJECTION")
             elif i==3:
-                return "WORKS_ON"
-    return None
+                table_list.append( "WORKS_ON")
+    return table_list
 
     
 '''  优化后的查询执行树 '''    
@@ -192,13 +194,13 @@ while(1):
     elif sel == '2':
         sql_arr = sql1.split(" ")
         sql_node =  printOriginTree(sql_arr)
-        afterParseTree = parseTree(sql_node,sql_arr)
-        printAfterParseTree(afterParseTree)
+        #afterParseTree = parseTree(sql_node,sql_arr)
+        #printAfterParseTree(afterParseTree)
     elif sel == '3':
         sql_arr = sql2.split(" ")
         sql_node = printOriginTree(sql_arr)
-        afterParseTree = parseTree(sql_node,sql_arr)
-        printAfterParseTree(afterParseTree)
+        #afterParseTree = parseTree(sql_node,sql_arr)
+        #printAfterParseTree(afterParseTree)
     else:
         print "over"
         break
