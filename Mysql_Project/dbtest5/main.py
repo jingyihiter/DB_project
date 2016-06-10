@@ -22,7 +22,7 @@ sql_keys = ["SELECT","PROJECTION","JOIN"]
 Table_list = [["ESSN","ADDRESS","SALARY","SUPERSSN","ENAME","DNO"], #EMPLOYEE
 	["DNO","DNAME","DNEMBER","MGRSSN","MGRSTARTDATE"],            #DEPARTMENT
 	["PNAME","PNO","PLOCATION","DNO"],                            #PROJECT
-	["HOURS","P.ESSN","PNO"]]                                     #WORKS_ON
+	["HOURS","ESSN","PNO"]]                                     #WORKS_ON
 
 
 ''' 打印原始执行树'''
@@ -70,6 +70,7 @@ def printOriginTree(sql):
                 currentNode.statement = sql[i]
                 currentNode.content = s
     return mylist
+
             
 ''' 查找属性所在表'''            
 def search(s):
@@ -88,18 +89,19 @@ def search(s):
     
 '''  优化后的查询执行树 '''    
 def parseTree(sql_node,sql_arr): 
+   print "\tparseTree"
    currentnode = MyList(None,None,None,None)
    if sql_node.statement == "SELECT":
        if '&' in sql_node.content:
            s= sql_node.content.split('&')
-           print s  
+           #print s  
            table_s = []
            for i in range(len(s)):
                pro = re.split('=|>|<|!=',s[i])
-               print pro
+               #print pro
                table_s.append(search(pro[0]))
-               print "SELECT"+' '+s[i]+'\n'+search(pro[0])
-           print table_s
+               #print "SELECT"+' '+s[i]+'\n'+search(pro[0])
+           #print table_s
            sel_list =[]
            sel_list.append(s[0])
            sel_list.append(table_s[0])
@@ -107,30 +109,78 @@ def parseTree(sql_node,sql_arr):
            currentnode.statement = "SELECT"
            for j in range(1,len(table_s)):
                newnode = MyList(None,None,None,None)
+               topnode = MyList(None,None,None,None)
                sel_list =[]
                sel_list.append(s[j])
                sel_list.append(table_s[j])
                newnode.statement = "SELECT"
                newnode.content = sel_list
-               currentnode.statement = "JOIN"
-               currentnode.LnextNode = currentnode
-               currentnode.RnextNode = newnode
+               topnode.statement = "JOIN"
+               topnode.LnextNode = currentnode
+               topnode.RnextNode = newnode
+               currentnode = topnode
+   elif sql_node.statement == "PROJECTION":
+       topnode = MyList(None,None,None,None)
+       topnode.statement = "PROJECTION"
+       topnode.content = sql_node.content
+       #currentnode = sql_node.LnextNode
+       if sql_node.LnextNode.statement == "SELECT":
+           if '&' in sql_node.LnextNode.content:
+               s = sql_node.LnextNode.content.split('&')
+               table_s = []
+               for i in range(len(s)):
+                   pro = re.split('=|>|<|!=',s[i])
+                   table_s.append(search(pro[0]))
+               sel_list =[]
+               sel_list.append(s[0])
+               sel_list.append(table_s[0])
+               currentnode.content  = sel_list
+               currentnode.statement = "SELECT"
+               for j in range(1,len(table_s)):
+                   newnode = MyList(None,None,None,None)
+                   toplnode = MyList(None,None,None,None)
+                   sel_list =[]
+                   sel_list.append(s[j])
+                   sel_list.append(table_s[j])
+                   newnode.statement = "SELECT"
+                   newnode.content = sel_list
+                   toplnode.statement = "JOIN"
+                   toplnode.LnextNode = currentnode
+                   toplnode.RnextNode = newnode
+                   currentnode = toplnode
+       topnode.LnextNode = toplnode
+       print topnode.statement
+       currentnode = topnode
    else:
        tempnode = sql_node
-       while(tempnode.nextNode != None):
-           tempnode = tempnode.nextNode
+       while(tempnode.LnextNode != None):
+           tempnode = tempnode.LnextNode
            if tempnode.statement == "SELECT":
                if '&' in sql_node.content:
                    s= tempnode.content.split('&')
-               print s 
-       
-       return currentnode
+                   print s 
+   return currentnode
 
 
 ''' 打印优化后的查询执行树'''
 def printAfterParseTree(afterParseTree):
     print "\t****new tree****\n"
-
+    print afterParseTree.statement
+    print afterParseTree.content
+    print afterParseTree.LnextNode.statement
+    if afterParseTree.statement == None:
+        print "tree None"
+        return
+    if afterParseTree.content == None:
+        print '\t'+afterParseTree.statement
+        lnode =  afterParseTree.LnextNode
+        rnode = afterParseTree.RnextNode
+        print lnode.statement,lnode.content[0],rnode.statement,rnode.content[0]
+        print lnode.content[1],'\t\t',rnode.content[1]
+    else:
+        print afterParseTree.statement,afterParseTree.content
+        
+        
 print "input 1 or 2 or 3 to select sql"
 while(1):
     sel = raw_input()
@@ -142,11 +192,13 @@ while(1):
     elif sel == '2':
         sql_arr = sql1.split(" ")
         sql_node =  printOriginTree(sql_arr)
-        parseTree(sql_node,sql_arr)
+        afterParseTree = parseTree(sql_node,sql_arr)
+        printAfterParseTree(afterParseTree)
     elif sel == '3':
         sql_arr = sql2.split(" ")
         sql_node = printOriginTree(sql_arr)
-        parseTree(sql_node,sql_arr)
+        afterParseTree = parseTree(sql_node,sql_arr)
+        printAfterParseTree(afterParseTree)
     else:
         print "over"
         break
